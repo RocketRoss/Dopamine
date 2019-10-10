@@ -138,6 +138,10 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         private async Task GetTracksAsync()
         {
             IList<TrackViewModel> tracks = await this.fileService.ProcessFilesInDirectoryAsync(this.activeSubfolderPath);
+            foreach (SubfolderViewModel subFolder in this.Subfolders)
+            {
+                tracks = tracks.Concat(await this.fileService.ProcessFilesInDirectoryAsync(subFolder.Path)).ToList();
+            }
             await this.GetTracksCommonAsync(tracks, TrackOrder.None);
         }
 
