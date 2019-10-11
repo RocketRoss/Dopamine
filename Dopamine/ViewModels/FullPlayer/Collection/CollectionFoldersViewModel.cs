@@ -1,4 +1,5 @@
-﻿using Digimezzo.Foundation.Core.Settings;
+﻿using Digimezzo.Foundation.Core.Logging;
+using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Prism;
 using Dopamine.Data;
 using Dopamine.Data.Entities;
@@ -15,6 +16,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Dopamine.ViewModels.FullPlayer.Collection
@@ -32,6 +34,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         private string activeSubfolderPath;
         private ObservableCollection<SubfolderBreadCrumbViewModel> subfolderBreadCrumbs;
         private int subfolderTrackInclusionDepthLimit;
+        private CancellationTokenSource taskCancellationTokenSource;
 
         public DelegateCommand<string> JumpSubfolderCommand { get; set; }
 
@@ -134,45 +137,63 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                 this.Subfolders = new ObservableCollection<SubfolderViewModel>(await this.foldersService.GetSubfoldersAsync(this.selectedFolder, activeSubfolder));
                 this.activeSubfolderPath = this.subfolders.Count > 0 && this.subfolders.Any(x => x.IsGoToParent) ? this.subfolders.Where(x => x.IsGoToParent).First().Path : this.selectedFolder.Path;
                 this.SubfolderBreadCrumbs = new ObservableCollection<SubfolderBreadCrumbViewModel>(this.foldersService.GetSubfolderBreadCrumbs(this.selectedFolder, this.activeSubfolderPath));
-                await this.GetTracksAsync();
+
+                if (taskCancellationTokenSource != null)
+                {
+                    taskCancellationTokenSource.Cancel();
+                }
+                taskCancellationTokenSource = new CancellationTokenSource();
+
+                await this.GetTracksAsync(taskCancellationTokenSource.Token);
                 await this.foldersService.SetPlayingSubFolderAsync(this.Subfolders);
             }
         }
 
-        private async Task GetTracksAsync()
+        private async Task GetTracksAsync(CancellationToken TaskCancellationToken)
         {
-            IList<TrackViewModel> tracks = await GetFolderTracksAsync(this.activeSubfolderPath);
-
-            int subfolderDepthLimit = this.subfolderTrackInclusionDepthLimit;
-            int subfolderDepthIncrement = (subfolderDepthLimit == -1 ? 0 : 1);
-
-            ObservableCollection<SubfolderViewModel> subfolders = this.Subfolders;
-
-            for (int subfolderDepthCounter = 0; subfolderDepthCounter != subfolderDepthLimit; subfolderDepthCounter += subfolderDepthIncrement)
+            try
             {
-                ObservableCollection<SubfolderViewModel> subSubfolders = new ObservableCollection<SubfolderViewModel>();
+                IList<TrackViewModel> tracks = await GetFolderTracksAsync(this.activeSubfolderPath);
+                TaskCancellationToken.ThrowIfCancellationRequested();
 
-                foreach (SubfolderViewModel subfolder in subfolders)
+                int subfolderDepthLimit = this.subfolderTrackInclusionDepthLimit;
+                int subfolderDepthIncrement = (subfolderDepthLimit == -1 ? 0 : 1);
+
+                ObservableCollection<SubfolderViewModel> subfolders = this.Subfolders;
+
+                for (int subfolderDepthCounter = 0; subfolderDepthCounter != subfolderDepthLimit; subfolderDepthCounter += subfolderDepthIncrement)
                 {
-                    if(subfolder.IsGoToParent)
+                    TaskCancellationToken.ThrowIfCancellationRequested();
+                    ObservableCollection<SubfolderViewModel> subSubfolders = new ObservableCollection<SubfolderViewModel>();
+
+                    foreach (SubfolderViewModel subfolder in subfolders)
                     {
-                        continue;
+                        if(subfolder.IsGoToParent)
+                        {
+                            continue;
+                        }
+                        tracks = tracks.Concat(await GetFolderTracksAsync(subfolder.Path)).ToList();
+
+                        FolderViewModel subfolderAsFolder = new FolderViewModel( new Folder { Path = subfolder.Path, SafePath = subfolder.SafePath, ShowInCollection = 0 });
+                        IList<SubfolderViewModel> localSubSubfolders = await this.foldersService.GetSubfoldersAsync(subfolderAsFolder, null);
+
+                        subSubfolders = new ObservableCollection<SubfolderViewModel> (subSubfolders.Concat(localSubSubfolders));
+                        TaskCancellationToken.ThrowIfCancellationRequested();
                     }
-                    tracks = tracks.Concat(await GetFolderTracksAsync(subfolder.Path)).ToList();
+                    subfolders = subSubfolders;
 
-                    FolderViewModel subfolderAsFolder = new FolderViewModel( new Folder { Path = subfolder.Path, SafePath = subfolder.SafePath, ShowInCollection = 0 });
-                    IList<SubfolderViewModel> localSubSubfolders = await this.foldersService.GetSubfoldersAsync(subfolderAsFolder, null);
-
-                    subSubfolders = new ObservableCollection<SubfolderViewModel> (subSubfolders.Concat(localSubSubfolders));
+                    if (subfolders.Count == 0)
+                    {
+                        break;
+                    }
                 }
-                subfolders = subSubfolders;
+                await this.GetTracksCommonAsync(tracks, TrackOrder.None);
 
-                if (subfolders.Count == 0)
-                {
-                    break;
-                }
             }
-            await this.GetTracksCommonAsync(tracks, TrackOrder.None);
+            catch(OperationCanceledException)
+            {
+                LogClient.Info("Folder changed while awaiting collection of tracks for previously active folder.");
+            }
         }
 
         private async Task<IList<TrackViewModel>> GetFolderTracksAsync(string FolderPath)
