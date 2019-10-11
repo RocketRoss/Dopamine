@@ -1,6 +1,7 @@
 ﻿using Digimezzo.Foundation.Core.Settings;
 using Dopamine.Core.Prism;
 using Dopamine.Data;
+using Dopamine.Data.Entities;
 using Dopamine.Services.Entities;
 using Dopamine.Services.File;
 using Dopamine.Services.Folders;
@@ -10,6 +11,7 @@ using Prism.Commands;
 using Prism.Events;
 using Prism.Ioc;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -29,6 +31,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
         private FolderViewModel selectedFolder;
         private string activeSubfolderPath;
         private ObservableCollection<SubfolderBreadCrumbViewModel> subfolderBreadCrumbs;
+        private int subfolderTrackInclusionDepthLimit;
 
         public DelegateCommand<string> JumpSubfolderCommand { get; set; }
 
@@ -78,6 +81,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             this.fileService = fileService;
             this.playbackService = playbackService;
             this.eventAggregator = eventAggregator;
+            this.subfolderTrackInclusionDepthLimit = 100;
 
             // Commands
             this.JumpSubfolderCommand = new DelegateCommand<string>((subfolderPath) => this.GetSubfoldersAsync(new SubfolderViewModel(subfolderPath, false)));
@@ -137,12 +141,43 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
 
         private async Task GetTracksAsync()
         {
-            IList<TrackViewModel> tracks = await this.fileService.ProcessFilesInDirectoryAsync(this.activeSubfolderPath);
-            foreach (SubfolderViewModel subFolder in this.Subfolders)
+            IList<TrackViewModel> tracks = await GetFolderTracksAsync(this.activeSubfolderPath);
+
+            int subfolderDepthLimit = this.subfolderTrackInclusionDepthLimit;
+            int subfolderDepthIncrement = (subfolderDepthLimit == -1 ? 0 : 1);
+
+            ObservableCollection<SubfolderViewModel> subfolders = this.Subfolders;
+
+            for (int subfolderDepthCounter = 0; subfolderDepthCounter != subfolderDepthLimit; subfolderDepthCounter += subfolderDepthIncrement)
             {
-                tracks = tracks.Concat(await this.fileService.ProcessFilesInDirectoryAsync(subFolder.Path)).ToList();
+                ObservableCollection<SubfolderViewModel> subSubfolders = new ObservableCollection<SubfolderViewModel>();
+
+                foreach (SubfolderViewModel subfolder in subfolders)
+                {
+                    if(subfolder.IsGoToParent)
+                    {
+                        continue;
+                    }
+                    tracks = tracks.Concat(await GetFolderTracksAsync(subfolder.Path)).ToList();
+
+                    FolderViewModel subfolderAsFolder = new FolderViewModel( new Folder { Path = subfolder.Path, SafePath = subfolder.SafePath, ShowInCollection = 0 });
+                    IList<SubfolderViewModel> localSubSubfolders = await this.foldersService.GetSubfoldersAsync(subfolderAsFolder, null);
+
+                    subSubfolders = new ObservableCollection<SubfolderViewModel> (subSubfolders.Concat(localSubSubfolders));
+                }
+                subfolders = subSubfolders;
+
+                if (subfolders.Count == 0)
+                {
+                    break;
+                }
             }
             await this.GetTracksCommonAsync(tracks, TrackOrder.None);
+        }
+
+        private async Task<IList<TrackViewModel>> GetFolderTracksAsync(string FolderPath)
+        {
+            return await this.fileService.ProcessFilesInDirectoryAsync(FolderPath);
         }
 
         protected async override Task FillListsAsync()
