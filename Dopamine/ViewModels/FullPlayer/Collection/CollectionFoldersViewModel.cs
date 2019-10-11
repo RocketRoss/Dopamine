@@ -154,6 +154,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             try
             {
                 IList<TrackViewModel> tracks = await GetFolderTracksAsync(this.activeSubfolderPath);
+                await this.GetTracksCommonAsync(tracks, TrackOrder.None);
                 TaskCancellationToken.ThrowIfCancellationRequested();
 
                 int subfolderDepthLimit = this.subfolderTrackInclusionDepthLimit;
@@ -180,6 +181,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                         subSubfolders = new ObservableCollection<SubfolderViewModel> (subSubfolders.Concat(localSubSubfolders));
                         TaskCancellationToken.ThrowIfCancellationRequested();
                     }
+                    await this.GetTracksCommonAsync(tracks, TrackOrder.None);
                     subfolders = subSubfolders;
 
                     if (subfolders.Count == 0)
@@ -187,7 +189,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
                         break;
                     }
                 }
-                await this.GetTracksCommonAsync(tracks, TrackOrder.None);
+                //await this.GetTracksCommonAsync(tracks, TrackOrder.None);
 
             }
             catch(OperationCanceledException)
