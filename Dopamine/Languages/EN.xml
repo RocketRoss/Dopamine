@@ -448,4 +448,6 @@
   <Text Key="Date_Added">Date added</Text>
   <Text Key="Date_Created">Date created</Text>
   <Text Key="Manage_Collection">Manage collection</Text>
+  <Text Key="Folder_View">Folder View</Text>
+  <Text Key="Subfolder_Track_Inclusion_Depth">Subfolder Track Inclusion Depth</Text>
 </Language>

@@ -84,7 +84,7 @@ namespace Dopamine.ViewModels.FullPlayer.Collection
             this.fileService = fileService;
             this.playbackService = playbackService;
             this.eventAggregator = eventAggregator;
-            this.subfolderTrackInclusionDepthLimit = 100;
+            this.subfolderTrackInclusionDepthLimit = -1;
 
             // Commands
             this.JumpSubfolderCommand = new DelegateCommand<string>((subfolderPath) => this.GetSubfoldersAsync(new SubfolderViewModel(subfolderPath, false)));

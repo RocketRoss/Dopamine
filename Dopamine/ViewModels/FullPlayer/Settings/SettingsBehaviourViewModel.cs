@@ -21,6 +21,8 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
         private bool checkBoxShowRemoveFromDiskChecked;
         private ObservableCollection<NameValue> scrollVolumePercentages;
         private NameValue selectedScrollVolumePercentage;
+        private ObservableCollection<NameValue> subfolderTrackInclusionDepths;
+        private NameValue selectedSubfolderTrackInclusionDepth;
 
         public bool CheckBoxShowTrayIconChecked
         {
@@ -102,12 +104,6 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
             }
         }
 
-        public ObservableCollection<NameValue> ScrollVolumePercentages
-        {
-            get { return this.scrollVolumePercentages; }
-            set { SetProperty<ObservableCollection<NameValue>>(ref this.scrollVolumePercentages, value); }
-        }
-
         public NameValue SelectedScrollVolumePercentage
         {
             get { return this.selectedScrollVolumePercentage; }
@@ -122,12 +118,40 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
             }
         }
 
+        public ObservableCollection<NameValue> ScrollVolumePercentages
+        {
+            get { return this.scrollVolumePercentages; }
+            set { SetProperty<ObservableCollection<NameValue>>(ref this.scrollVolumePercentages, value); }
+        }
+
+        public NameValue SelectedSubfolderTrackInclusionDepth
+        {
+            get { return this.selectedSubfolderTrackInclusionDepth; }
+            set
+            {
+                if(value != null)
+                {
+                    SettingsClient.Set<int>("Behaviour", "SubfolderTrackInclusionDepth", value.Value);
+                }
+                else
+                SetProperty<NameValue>(ref this.selectedSubfolderTrackInclusionDepth, value);
+
+            }
+        }
+
+        public ObservableCollection<NameValue> SubfolderTrackInclusionDepths
+        {
+            get { return this.subfolderTrackInclusionDepths; }
+            set { SetProperty<ObservableCollection<NameValue>>(ref this.subfolderTrackInclusionDepths, value); }
+        }
+
         public SettingsBehaviourViewModel(IEventAggregator eventAggregator)
         {
             this.eventAggregator = eventAggregator;
 
             this.GetCheckBoxesAsync();
             this.GetScrollVolumePercentagesAsync();
+            this.GetSubfolderTrackInclusionDepth();
         }
 
         private async void GetCheckBoxesAsync()
@@ -164,6 +188,33 @@ namespace Dopamine.ViewModels.FullPlayer.Settings
             NameValue localSelectedScrollVolumePercentage = null;
             await Task.Run(() => localSelectedScrollVolumePercentage = this.ScrollVolumePercentages.Where((svp) => svp.Value == SettingsClient.Get<int>("Behaviour", "ScrollVolumePercentage")).Select((svp) => svp).First());
             this.SelectedScrollVolumePercentage = localSelectedScrollVolumePercentage;
+        }
+
+        private async void GetSubfolderTrackInclusionDepth()
+        {
+            var localSubfolderTrackInclusionDepths = new ObservableCollection<NameValue>();
+
+            await Task.Run(() =>
+            {
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "∞", Value = -1 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "0", Value = 0 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "1", Value = 1 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "2", Value = 2 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "3", Value = 3 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "4", Value = 4 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "5", Value = 5 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "6", Value = 6 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "7", Value = 7 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "8", Value = 8 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "9", Value = 9 });
+                localSubfolderTrackInclusionDepths.Add(new NameValue { Name = "10", Value = 10 });
+            });
+            this.SubfolderTrackInclusionDepths = localSubfolderTrackInclusionDepths;
+
+            NameValue localSelectedSubfolderTrackInclusionDepth = new NameValue { Name = "0", Value = 0 };
+
+            //await Task.Run(() => localSelectedSubfolderTrackInclusionDepth = this.SubfolderTrackInclusionDepths.Where((stid) => stid.Value == SettingsClient.Get<int>("Behaviour", "SubfolderTrackInclusionDepth")).Select((stid) => stid).First());
+            this.SelectedSubfolderTrackInclusionDepth = localSelectedSubfolderTrackInclusionDepth;
         }
     }
 }

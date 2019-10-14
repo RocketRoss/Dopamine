@@ -51,6 +51,14 @@
                 <TextBlock Text="{DynamicResource Language_Show_Remove_From_Disk}" Foreground="{DynamicResource Brush_PrimaryText}"/>
                 <dc:Windows10ToggleSwitch x:Name="CheckBoxShowRemoveFromDisk" Margin="0,10,0,0" HorizontalAlignment="Left" FontSize="12" OnLabel="{DynamicResource Language_Yes}" OffLabel="{DynamicResource Language_No}" Foreground="{DynamicResource Brush_PrimaryText}" Accent="{DynamicResource Brush_Accent}" IsChecked="{Binding CheckBoxShowRemoveFromDiskChecked}"/>
             </StackPanel>
+            <Label Margin="0,20,0,0" Style="{StaticResource TitleLabel}" Content="{DynamicResource Language_Folder_View}"/>
+            <StackPanel Margin="0,5,0,0">
+                <TextBlock Margin="0,20,0,0" Text="{DynamicResource Language_Subfolder_Track_Inclusion_Depth}" Foreground="{DynamicResource Brush_PrimaryText}"/>
+                <DockPanel HorizontalAlignment="Left" Margin="0,10,0,0">
+                    <ComboBox x:Name="ComboBoxNotificationSeconds" Style="{StaticResource MetroComboBox}" DockPanel.Dock="Left" Padding="0" HorizontalAlignment="Left" VerticalContentAlignment="Center" Width="75" ItemsSource="{Binding SubfolderTrackInclusionDepths}" SelectedItem="{Binding SelectedSubfolderTrackInclusionDepth}"/>
+                </DockPanel>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </UserControl>

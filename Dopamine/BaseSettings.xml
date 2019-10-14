@@ -151,6 +151,9 @@
     <Setting Name="ScrollVolumePercentage">
       <Value>2</Value>
     </Setting>
+    <Setting Name="SubfolderTrackInclusionDepth">
+      <Value>1</Value>
+    </Setting>
     <Setting Name="ShowRemoveFromDisk">
       <Value>False</Value>
     </Setting>
